@@ -97,7 +97,7 @@
         "last4": { "name": "Last four digits", "description": "Of the guest's phone number." },
         "checkin": { "name": "Check-in", "description": "When the code starts working." },
         "checkout": { "name": "Check-out", "description": "When the code stops working." },
-        "name": { "name": "Name", "description": "Defaults to Booking-<digits>." }
+        "name": { "name": "Name", "description": "Defaults to Booking- followed by the four digits." }
       }
     },
     "revoke_code": {

@@ -97,7 +97,7 @@
         "last4": { "name": "Laatste vier cijfers", "description": "Van het telefoonnummer van de gast." },
         "checkin": { "name": "Incheck", "description": "Vanaf wanneer de code werkt." },
         "checkout": { "name": "Uitcheck", "description": "Tot wanneer de code werkt." },
-        "name": { "name": "Naam", "description": "Standaard Booking-<cijfers>." }
+        "name": { "name": "Naam", "description": "Standaard Booking- gevolgd door de vier cijfers." }
       }
     },
     "revoke_code": {

@@ -1,12 +1,20 @@
 {
   "domain": "tuya_lock_bridge",
   "name": "Tuya Lock Bridge",
-  "codeowners": ["@leanderdl2"],
+  "codeowners": [
+    "@leanderdl2"
+  ],
   "config_flow": true,
+  "dependencies": [
+    "http",
+    "frontend"
+  ],
   "documentation": "https://github.com/leanderdl2/hass-tuya-lock-bridge",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/leanderdl2/hass-tuya-lock-bridge/issues",
-  "requirements": ["tuya-connector-python==0.1.2"],
+  "requirements": [
+    "tuya-connector-python==0.1.2"
+  ],
   "version": "0.2.0"
 }
