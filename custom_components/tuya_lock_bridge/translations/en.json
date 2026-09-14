@@ -1,0 +1,184 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Tuya Cloud project",
+        "description": "The Access ID and Access Secret of your Cloud Development project on iot.tuya.com. The project must be subscribed to the Smart Lock Open Service.",
+        "data": {
+          "access_id": "Access ID",
+          "access_secret": "Access Secret",
+          "endpoint": "Data centre"
+        }
+      },
+      "locks": {
+        "title": "Which locks",
+        "description": "Pick the locks to manage. Locks are pre-selected; other devices are listed only when the account has no lock in a category we recognise.",
+        "data": {
+          "locks": "Locks"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Tuya refused the credentials. Check the Access ID, the Access Secret and the data centre.",
+      "cannot_connect": "Could not reach Tuya's cloud.",
+      "no_devices": "This project lists no devices. Link your Tuya app account to the project on iot.tuya.com.",
+      "no_locks": "Pick at least one lock.",
+      "unknown": "Something unexpected went wrong; see the log."
+    },
+    "abort": {
+      "already_configured": "This Tuya project is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tuya Lock Bridge",
+        "data": {
+          "locks": "Locks",
+          "refresh_minutes": "Refresh every (minutes)"
+        },
+        "data_description": {
+          "refresh_minutes": "Every refresh is a handful of calls per lock against your Tuya project's monthly allowance."
+        }
+      }
+    },
+    "error": {
+      "no_locks": "Pick at least one lock."
+    }
+  },
+  "entity": {
+    "button": {
+      "open": { "name": "Open" }
+    },
+    "sensor": {
+      "valid_codes": { "name": "Valid codes" },
+      "last_unlock": { "name": "Last unlock" }
+    },
+    "event": {
+      "unlock": {
+        "name": "Unlock",
+        "state_attributes": {
+          "event_type": {
+            "state": { "unlock": "Unlock" }
+          }
+        }
+      }
+    },
+    "switch": {
+      "profile": { "name": "Profile {name}" }
+    }
+  },
+  "services": {
+    "unlock": {
+      "name": "Open the door",
+      "description": "Opens the door of a lock.",
+      "fields": { "device_id": { "name": "Lock", "description": "The lock to open." } }
+    },
+    "create_code": {
+      "name": "Create a temporary code",
+      "description": "Creates a temporary code with a PIN of your own. Answers with the code id.",
+      "fields": {
+        "device_id": { "name": "Lock", "description": "The lock to put the code on." },
+        "password": { "name": "PIN", "description": "Digits only. Most keypads expect six." },
+        "start": { "name": "Valid from", "description": "Start of the period." },
+        "end": { "name": "Valid until", "description": "End of the period." },
+        "name": { "name": "Name", "description": "Shown in the code list and the unlock log." },
+        "one_time": { "name": "Single use", "description": "The code expires after one use." },
+        "days": { "name": "Days", "description": "For a recurring daily pattern: the weekdays it applies to." },
+        "daily_from": { "name": "Every day from", "description": "Start of the daily window." },
+        "daily_until": { "name": "Every day until", "description": "End of the daily window." }
+      }
+    },
+    "book": {
+      "name": "Create a booking code",
+      "description": "A code per booking: the two-digit year of check-in plus the last four digits of the guest's phone number. Answers with the code id.",
+      "fields": {
+        "device_id": { "name": "Lock", "description": "The lock to put the code on." },
+        "last4": { "name": "Last four digits", "description": "Of the guest's phone number." },
+        "checkin": { "name": "Check-in", "description": "When the code starts working." },
+        "checkout": { "name": "Check-out", "description": "When the code stops working." },
+        "name": { "name": "Name", "description": "Defaults to Booking-<digits>." }
+      }
+    },
+    "revoke_code": {
+      "name": "Revoke a code",
+      "description": "The code stops working. Its record stays in the list until purged.",
+      "fields": {
+        "device_id": { "name": "Lock", "description": "The lock the code is on." },
+        "code_id": { "name": "Code id", "description": "As returned when the code was created, or from the code list." }
+      }
+    },
+    "purge_code": {
+      "name": "Purge a code record",
+      "description": "Removes an expired or revoked code from the list.",
+      "fields": {
+        "device_id": { "name": "Lock", "description": "The lock the code is on." },
+        "code_id": { "name": "Code id", "description": "As returned when the code was created, or from the code list." }
+      }
+    },
+    "list_codes": {
+      "name": "List codes",
+      "description": "Every temporary code on a lock, as Tuya reports it.",
+      "fields": { "device_id": { "name": "Lock", "description": "The lock to list." } }
+    },
+    "add_profile": {
+      "name": "Add a profile",
+      "description": "Creates a profile with a permanent PIN. Answers with its user id.",
+      "fields": {
+        "device_id": { "name": "Lock", "description": "The lock to add the profile to." },
+        "name": { "name": "Name", "description": "The profile's name; also used for the PIN in the unlock log." },
+        "password": { "name": "PIN", "description": "Digits only." }
+      }
+    },
+    "delete_profile": {
+      "name": "Delete a profile",
+      "description": "Removes a profile and all its codes and cards.",
+      "fields": {
+        "device_id": { "name": "Lock", "description": "The lock the profile is on." },
+        "user_id": { "name": "Profile id", "description": "From the profile's switch attributes or the profile list." }
+      }
+    },
+    "add_method": {
+      "name": "Add a code or card to a profile",
+      "description": "A PIN is added straight away. For a card the lock goes into enrolment mode: hold the card against the keypad within a minute.",
+      "fields": {
+        "device_id": { "name": "Lock", "description": "The lock the profile is on." },
+        "user_id": { "name": "Profile id", "description": "From the profile's switch attributes or the profile list." },
+        "type": { "name": "Type", "description": "What to add." },
+        "password": { "name": "PIN", "description": "For a PIN: digits only." },
+        "name": { "name": "Name", "description": "Shown in the unlock log. Defaults to the profile's name." }
+      }
+    },
+    "rename_method": {
+      "name": "Rename a code or card",
+      "description": "Gives a code or card a name of your own.",
+      "fields": {
+        "device_id": { "name": "Lock", "description": "The lock the profile is on." },
+        "user_id": { "name": "Profile id", "description": "The profile the method belongs to." },
+        "type": { "name": "Type", "description": "What kind of method." },
+        "sn": { "name": "Slot", "description": "The method's slot number, from the profile's switch attributes." },
+        "name": { "name": "Name", "description": "The new name." }
+      }
+    },
+    "delete_method": {
+      "name": "Remove a code or card",
+      "description": "Removes one code or card from a profile.",
+      "fields": {
+        "device_id": { "name": "Lock", "description": "The lock the profile is on." },
+        "user_id": { "name": "Profile id", "description": "The profile the method belongs to." },
+        "type": { "name": "Type", "description": "What kind of method." },
+        "sn": { "name": "Slot", "description": "The method's slot number, from the profile's switch attributes." }
+      }
+    },
+    "list_profiles": {
+      "name": "List profiles",
+      "description": "Every member of a lock with its permanent codes and cards, including app accounts that share it.",
+      "fields": { "device_id": { "name": "Lock", "description": "The lock to list." } }
+    },
+    "refresh": {
+      "name": "Refresh",
+      "description": "Fetches the codes, the unlock log and the profiles now instead of at the next interval.",
+      "fields": { "device_id": { "name": "Lock", "description": "Any lock of the account; the whole account refreshes." } }
+    }
+  }
+}

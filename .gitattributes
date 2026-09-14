@@ -1,0 +1,5 @@
+# Regeleindes altijd als LF opslaan. Een run.sh met Windows-regeleindes
+# laat de container falen met een onbegrijpelijke "not found".
+* text=auto eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf

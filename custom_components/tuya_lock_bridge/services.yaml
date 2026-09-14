@@ -1,0 +1,205 @@
+unlock:
+  fields:
+    device_id: &lock
+      required: true
+      selector:
+        device:
+          integration: tuya_lock_bridge
+
+create_code:
+  fields:
+    device_id: *lock
+    password:
+      required: true
+      example: "445566"
+      selector:
+        text:
+    start:
+      required: true
+      selector:
+        datetime:
+    end:
+      required: true
+      selector:
+        datetime:
+    name:
+      example: Cleaner
+      selector:
+        text:
+    one_time:
+      default: false
+      selector:
+        boolean:
+    days:
+      selector:
+        select:
+          multiple: true
+          mode: list
+          options:
+            - value: "1"
+              label: Monday
+            - value: "2"
+              label: Tuesday
+            - value: "3"
+              label: Wednesday
+            - value: "4"
+              label: Thursday
+            - value: "5"
+              label: Friday
+            - value: "6"
+              label: Saturday
+            - value: "7"
+              label: Sunday
+    daily_from:
+      example: "11:00"
+      selector:
+        time:
+    daily_until:
+      example: "15:00"
+      selector:
+        time:
+
+book:
+  fields:
+    device_id: *lock
+    last4:
+      required: true
+      example: "4321"
+      selector:
+        text:
+    checkin:
+      required: true
+      selector:
+        datetime:
+    checkout:
+      required: true
+      selector:
+        datetime:
+    name:
+      example: Booking-4321
+      selector:
+        text:
+
+revoke_code:
+  fields:
+    device_id: *lock
+    code_id:
+      required: true
+      selector:
+        number:
+          mode: box
+
+purge_code:
+  fields:
+    device_id: *lock
+    code_id:
+      required: true
+      selector:
+        number:
+          mode: box
+
+list_codes:
+  fields:
+    device_id: *lock
+
+add_profile:
+  fields:
+    device_id: *lock
+    name:
+      required: true
+      example: Cleaner
+      selector:
+        text:
+    password:
+      required: true
+      example: "445566"
+      selector:
+        text:
+
+delete_profile:
+  fields:
+    device_id: *lock
+    user_id:
+      required: true
+      selector:
+        text:
+
+add_method:
+  fields:
+    device_id: *lock
+    user_id:
+      required: true
+      selector:
+        text:
+    type:
+      required: true
+      default: password
+      selector:
+        select:
+          options:
+            - password
+            - card
+            - fingerprint
+            - face
+    password:
+      selector:
+        text:
+    name:
+      selector:
+        text:
+
+rename_method:
+  fields:
+    device_id: *lock
+    user_id:
+      required: true
+      selector:
+        text:
+    type:
+      required: true
+      selector:
+        select:
+          options:
+            - password
+            - card
+            - fingerprint
+            - face
+    sn:
+      required: true
+      selector:
+        number:
+          mode: box
+    name:
+      required: true
+      selector:
+        text:
+
+delete_method:
+  fields:
+    device_id: *lock
+    user_id:
+      required: true
+      selector:
+        text:
+    type:
+      required: true
+      selector:
+        select:
+          options:
+            - password
+            - card
+            - fingerprint
+            - face
+    sn:
+      required: true
+      selector:
+        number:
+          mode: box
+
+list_profiles:
+  fields:
+    device_id: *lock
+
+refresh:
+  fields:
+    device_id: *lock
