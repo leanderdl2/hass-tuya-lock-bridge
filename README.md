@@ -23,6 +23,11 @@ Per lock, one device with:
 | `event.<lock>_unlock` | Fires once per unlock — trigger an automation on who came in |
 | `switch.<lock>_profile_<name>` | One per profile: off means its codes and cards stop opening the door |
 
+A **Locks** page in the sidebar (administrators only) to do all of this by
+hand: see the codes on a lock, create one, revoke it, open the door, manage
+profiles and their PINs and cards. It is a custom panel that talks to Home
+Assistant over its own connection — no port, no token.
+
 And services (actions) for everything the entities cannot express:
 `tuya_lock_bridge.book`, `create_code`, `revoke_code`, `purge_code`,
 `list_codes`, `add_profile`, `delete_profile`, `add_method`, `rename_method`,

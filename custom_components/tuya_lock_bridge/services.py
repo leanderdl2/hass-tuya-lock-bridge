@@ -12,6 +12,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.util import dt as dt_util
 
 from .api import TuyaLockError, build_schedule
 from .const import DATA_MEMBERS, DOMAIN
@@ -74,6 +75,10 @@ def _resolve(hass: HomeAssistant, ha_device_id: str) -> tuple[TuyaLockCoordinato
 
 
 def _ts(value: datetime) -> int:
+    """A datetime without a zone - what a datetime-local field produces - is
+    Home Assistant's local time, not the container's, which is usually UTC."""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
     return int(value.timestamp())
 
 
