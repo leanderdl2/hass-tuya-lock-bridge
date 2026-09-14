@@ -1,0 +1,28 @@
+name: Validate
+
+# The two checks HACS requires for its default store, and worth having anyway:
+# hassfest is Home Assistant's own validation of the manifest, translations and
+# service descriptions; the HACS action checks what HACS needs to list a repo.
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+jobs:
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
