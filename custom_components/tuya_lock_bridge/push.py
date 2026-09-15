@@ -12,8 +12,13 @@ against a live connection:
   decided by the "environment" of the Message Service in the Tuya console; the
   other answers the handshake with HTTP 500.
 - Headers: username = access_id, password = md5(access_id + md5(secret))[8:24].
-- Each frame is JSON with `messageId` and a base64 `payload`; the payload is
-  JSON whose `data` is base64 of AES-128-ECB(secret[8:24]) with PKCS7 padding.
+- Each frame is JSON with `messageId`, a base64 `payload` and `properties`;
+  the payload is JSON whose `data` is base64 of the message encrypted with
+  secret[8:24] as the key. Two schemes exist, chosen per project in the
+  console: AES-128-ECB with PKCS7 padding (the original, `em: aes_ecb`) and
+  AES-128-GCM with a 12-byte nonce in front and the 16-byte tag at the end
+  (`em: aes_gcm`, what new projects get). The property says which; when it is
+  missing both are tried.
   Every frame must be acknowledged with {"messageId": ...} or it is redelivered.
 - Decrypted, a status report looks like
   {"devId": "...", "status": [{"code": "unlock_password", "value": 1, "t": 169...}]}
@@ -37,8 +42,10 @@ from collections.abc import Callable
 from typing import Any
 
 import websocket
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,12 +61,31 @@ def _pulsar_password(access_id: str, access_secret: str) -> str:
     return hashlib.md5((access_id + inner).encode()).hexdigest()[8:24]
 
 
-def decrypt_message(data_b64: str, access_secret: str) -> dict[str, Any]:
-    key = access_secret[8:24].encode()
+def _decrypt_ecb(blob: bytes, key: bytes) -> bytes:
     decryptor = Cipher(algorithms.AES(key), modes.ECB()).decryptor()
-    raw = decryptor.update(base64.b64decode(data_b64)) + decryptor.finalize()
+    raw = decryptor.update(blob) + decryptor.finalize()
     unpadder = padding.PKCS7(128).unpadder()
-    return json.loads(unpadder.update(raw) + unpadder.finalize())
+    return unpadder.update(raw) + unpadder.finalize()
+
+
+def _decrypt_gcm(blob: bytes, key: bytes) -> bytes:
+    if len(blob) < 12 + 16:
+        raise ValueError("too short for AES-GCM")
+    return AESGCM(key).decrypt(blob[:12], blob[12:], None)
+
+
+def decrypt_message(data_b64: str, access_secret: str, model: str | None = None) -> dict[str, Any]:
+    """`model` is the frame's `em` property: aes_ecb, aes_gcm, or unknown."""
+    key = access_secret[8:24].encode()
+    blob = base64.b64decode(data_b64)
+    order = [_decrypt_gcm, _decrypt_ecb] if model == "aes_gcm" else [_decrypt_ecb, _decrypt_gcm]
+    last: Exception | None = None
+    for fn in order:
+        try:
+            return json.loads(fn(blob, key))
+        except (InvalidTag, ValueError, UnicodeDecodeError, json.JSONDecodeError) as err:
+            last = err
+    raise ValueError(f"could not decrypt push message: {last}")
 
 
 class PushUnavailable(Exception):
@@ -106,7 +132,8 @@ class TuyaPushListener(threading.Thread):
         try:
             envelope = json.loads(frame)
             payload = json.loads(base64.b64decode(envelope["payload"]))
-            message = decrypt_message(payload["data"], self._secret)
+            model = (envelope.get("properties") or {}).get("em")
+            message = decrypt_message(payload["data"], self._secret, model)
         except Exception as err:  # noqa: BLE001 - a bad frame must not kill the thread
             _LOGGER.debug("Undecodable push frame: %s (%s)", frame[:200], err)
             message = None
