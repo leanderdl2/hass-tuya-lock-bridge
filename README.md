@@ -70,9 +70,9 @@ integration's options.
 
 By default the integration polls, so an unlock shows up within the refresh
 interval. Turn on **Real-time messages** in the integration's options and it
-also listens to Tuya's Message Service: an unlock triggers a refresh as soon
-as Tuya forwards it (measured: about 40 seconds after the unlock on a WiFi
-keypad, against up to five minutes with polling), and the doorbell and alarm events start working — those never appear
+also listens to Tuya's Message Service: an unlock triggers a refresh a few
+seconds after Tuya forwards it (measured: about five seconds on a WiFi keypad,
+against up to five minutes with polling), and the doorbell and alarm events start working — those never appear
 in the unlock log, so polling cannot see them.
 
 Two things to set up on the Tuya side: enable the **Message Service** for the
