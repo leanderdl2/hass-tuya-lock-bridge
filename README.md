@@ -83,7 +83,12 @@ reports as a repair issue.
 Every decoded message is also fired on the event bus as `tuya_lock_bridge_push`,
 so you can watch in Developer tools → Events what your lock actually sends.
 Which status codes a lock reports differs per model; doorbell and alarm are
-mapped from Tuya's standard `doorbell` and `alarm_lock` codes.
+mapped from Tuya's standard `doorbell` and `alarm_lock` codes. Measured on the
+Nivian keypad: an unlock arrives as `unlock_password_kit` (with the slot
+number) followed by `closed_opened_kit` for the relay, but a doorbell press and
+a wrong PIN are not reported to the cloud at all — the Tuya app gets no
+notification for them either — so on that model only the faster unlock
+matters.
 
 ## When Tuya says no
 

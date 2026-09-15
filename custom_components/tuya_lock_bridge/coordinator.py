@@ -316,11 +316,15 @@ class TuyaLockCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             elif code.startswith("unlock_") or code in ("open_close", "door_opened", "lock_motor_state"):
                 refresh = True
         if refresh:
-            self._schedule_refresh(device_id)
+            self._refresh_after_push(device_id)
 
     @callback
-    def _schedule_refresh(self, device_id: str) -> None:
-        """One refresh a few seconds after the last message about a lock."""
+    def _refresh_after_push(self, device_id: str) -> None:
+        """One refresh a few seconds after the last message about a lock.
+
+        Not named _schedule_refresh: DataUpdateCoordinator has a method of that
+        name for its own periodic refresh, and overriding it breaks polling.
+        """
         if (cancel := self._pending_refresh.pop(device_id, None)) is not None:
             cancel()
 
