@@ -1,4 +1,5 @@
-"""Sensors: how many codes are valid right now, and who opened the door last."""
+"""Sensors: how many codes are valid right now, who opened the door last, and
+how many API calls the account has made this month."""
 
 from __future__ import annotations
 
@@ -6,11 +7,12 @@ import time
 from datetime import datetime
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_CODES, DATA_UNLOCKS
-from .coordinator import code_status
+from .coordinator import TuyaLockCoordinator, code_status
 from .entity import TuyaLockEntity
 
 
@@ -20,6 +22,9 @@ async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities: AddE
     for device in coordinator.devices.values():
         entities.append(ValidCodesSensor(coordinator, device))
         entities.append(LastUnlockSensor(coordinator, device))
+    # One per account, attached to the first lock's device so it has a home.
+    if coordinator.devices:
+        entities.append(ApiCallsSensor(coordinator, next(iter(coordinator.devices.values()))))
     async_add_entities(entities)
 
 
@@ -97,3 +102,29 @@ class LastUnlockSensor(TuyaLockEntity, SensorEntity):
             "time": latest["time"],
             "recent": [{k: u[k] for k in ("who", "method", "key", "time")} for u in unlocks],
         }
+
+
+class ApiCallsSensor(TuyaLockEntity, SensorEntity):
+    """Calls made against the Tuya project's monthly allowance.
+
+    Resets on the first of the month, like the allowance. The count covers
+    this integration only; the Tuya app and other projects do not show here.
+    """
+
+    _attr_translation_key = "api_calls"
+    _attr_icon = "mdi:cloud-sync"
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_native_unit_of_measurement = "calls"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: TuyaLockCoordinator, device) -> None:
+        super().__init__(coordinator, device)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_api_calls"
+
+    @property
+    def native_value(self) -> int:
+        return self.coordinator.calls
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {"month": self.coordinator.calls_month, "push": self.coordinator.push_status}

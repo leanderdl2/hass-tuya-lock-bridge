@@ -35,10 +35,16 @@
         "title": "Tuya Lock Bridge",
         "data": {
           "locks": "Sloten",
-          "refresh_minutes": "Verversen elke (minuten)"
+          "refresh_minutes": "Verversen elke (minuten)",
+          "push": "Realtime berichten (push)",
+          "push_env": "Omgeving van de Message Service",
+          "subscription_end": "Einddatum cloudabonnement"
         },
         "data_description": {
-          "refresh_minutes": "Elke verversing is een handvol aanroepen per slot op het maandbudget van je Tuya-project."
+          "refresh_minutes": "Elke verversing is een handvol aanroepen per slot op het maandbudget van je Tuya-project.",
+          "push": "Luistert naar Tuya's Message Service, zodat ontgrendelingen binnen seconden zichtbaar zijn en de deurbel- en alarmgebeurtenissen werken. Kost Message Service-credits; de dienst moet in de Tuya-console aanstaan.",
+          "push_env": "Moet gelijk zijn aan de omgeving waarop de Message Service in de Tuya-console staat. De verkeerde wordt geweigerd met HTTP 500.",
+          "subscription_end": "Wanneer je IoT Core-abonnement verloopt (zie Cloud → My Services). Een maand vooraf verschijnt een reparatiemelding."
         }
       }
     },
@@ -48,137 +54,345 @@
   },
   "entity": {
     "button": {
-      "open": { "name": "Openen" }
+      "open": {
+        "name": "Openen"
+      }
     },
     "sensor": {
-      "valid_codes": { "name": "Geldige codes" },
-      "last_unlock": { "name": "Laatste ontgrendeling" }
+      "valid_codes": {
+        "name": "Geldige codes"
+      },
+      "last_unlock": {
+        "name": "Laatste ontgrendeling"
+      },
+      "api_calls": {
+        "name": "API-aanroepen deze maand"
+      }
     },
     "event": {
       "unlock": {
         "name": "Ontgrendeling",
         "state_attributes": {
           "event_type": {
-            "state": { "unlock": "Ontgrendeling" }
+            "state": {
+              "unlock": "Ontgrendeling"
+            }
+          }
+        }
+      },
+      "ring": {
+        "name": "Deurbel",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "ring": "Bel"
+            }
+          }
+        }
+      },
+      "alarm": {
+        "name": "Alarm",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "wrong_password": "Verkeerde pincode",
+              "wrong_card": "Verkeerd pasje",
+              "wrong_fingerprint": "Verkeerde vingerafdruk",
+              "wrong_face": "Verkeerd gezicht",
+              "tamper": "Sabotage",
+              "hijack": "Dwang",
+              "lock_stuck": "Slot klemt",
+              "low_battery": "Batterij laag",
+              "other": "Anders"
+            }
           }
         }
       }
     },
     "switch": {
-      "profile": { "name": "Profiel {name}" }
+      "profile": {
+        "name": "Profiel {name}"
+      }
+    },
+    "lock": {
+      "door": {
+        "name": "Deur"
+      }
     }
   },
   "services": {
     "unlock": {
       "name": "Deur openen",
       "description": "Opent de deur van een slot.",
-      "fields": { "device_id": { "name": "Slot", "description": "Het slot dat open moet." } }
+      "fields": {
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot dat open moet."
+        }
+      }
     },
     "create_code": {
       "name": "Tijdelijke code aanmaken",
       "description": "Maakt een tijdelijke code met een zelfgekozen pincode. Geeft het code-id terug.",
       "fields": {
-        "device_id": { "name": "Slot", "description": "Het slot waar de code op komt." },
-        "password": { "name": "Pincode", "description": "Alleen cijfers. De meeste keypads verwachten zes." },
-        "start": { "name": "Geldig vanaf", "description": "Begin van de periode." },
-        "end": { "name": "Geldig tot", "description": "Einde van de periode." },
-        "name": { "name": "Naam", "description": "Zichtbaar in de codelijst en het ontgrendellog." },
-        "one_time": { "name": "Eenmalig", "description": "De code vervalt na één keer gebruiken." },
-        "days": { "name": "Dagen", "description": "Voor een dagpatroon: de weekdagen waarop het geldt." },
-        "daily_from": { "name": "Elke dag vanaf", "description": "Begin van het dagelijkse venster." },
-        "daily_until": { "name": "Elke dag tot", "description": "Einde van het dagelijkse venster." }
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot waar de code op komt."
+        },
+        "password": {
+          "name": "Pincode",
+          "description": "Alleen cijfers. De meeste keypads verwachten zes."
+        },
+        "start": {
+          "name": "Geldig vanaf",
+          "description": "Begin van de periode."
+        },
+        "end": {
+          "name": "Geldig tot",
+          "description": "Einde van de periode."
+        },
+        "name": {
+          "name": "Naam",
+          "description": "Zichtbaar in de codelijst en het ontgrendellog."
+        },
+        "one_time": {
+          "name": "Eenmalig",
+          "description": "De code vervalt na één keer gebruiken."
+        },
+        "days": {
+          "name": "Dagen",
+          "description": "Voor een dagpatroon: de weekdagen waarop het geldt."
+        },
+        "daily_from": {
+          "name": "Elke dag vanaf",
+          "description": "Begin van het dagelijkse venster."
+        },
+        "daily_until": {
+          "name": "Elke dag tot",
+          "description": "Einde van het dagelijkse venster."
+        }
       }
     },
     "book": {
       "name": "Boekingscode aanmaken",
       "description": "Een code per boeking: het jaartal van de incheck in twee cijfers plus de laatste vier cijfers van het telefoonnummer van de gast. Geeft het code-id terug.",
       "fields": {
-        "device_id": { "name": "Slot", "description": "Het slot waar de code op komt." },
-        "last4": { "name": "Laatste vier cijfers", "description": "Van het telefoonnummer van de gast." },
-        "checkin": { "name": "Incheck", "description": "Vanaf wanneer de code werkt." },
-        "checkout": { "name": "Uitcheck", "description": "Tot wanneer de code werkt." },
-        "name": { "name": "Naam", "description": "Standaard Booking- gevolgd door de vier cijfers." }
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot waar de code op komt."
+        },
+        "last4": {
+          "name": "Laatste vier cijfers",
+          "description": "Van het telefoonnummer van de gast."
+        },
+        "checkin": {
+          "name": "Incheck",
+          "description": "Vanaf wanneer de code werkt."
+        },
+        "checkout": {
+          "name": "Uitcheck",
+          "description": "Tot wanneer de code werkt."
+        },
+        "name": {
+          "name": "Naam",
+          "description": "Standaard Booking- gevolgd door de vier cijfers."
+        }
       }
     },
     "revoke_code": {
       "name": "Code intrekken",
       "description": "De code werkt niet meer. Het record blijft in de lijst tot je het opruimt.",
       "fields": {
-        "device_id": { "name": "Slot", "description": "Het slot waar de code op staat." },
-        "code_id": { "name": "Code-id", "description": "Zoals teruggegeven bij het aanmaken, of uit de codelijst." }
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot waar de code op staat."
+        },
+        "code_id": {
+          "name": "Code-id",
+          "description": "Zoals teruggegeven bij het aanmaken, of uit de codelijst."
+        }
       }
     },
     "purge_code": {
       "name": "Coderecord opruimen",
       "description": "Haalt een verlopen of ingetrokken code uit de lijst.",
       "fields": {
-        "device_id": { "name": "Slot", "description": "Het slot waar de code op staat." },
-        "code_id": { "name": "Code-id", "description": "Zoals teruggegeven bij het aanmaken, of uit de codelijst." }
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot waar de code op staat."
+        },
+        "code_id": {
+          "name": "Code-id",
+          "description": "Zoals teruggegeven bij het aanmaken, of uit de codelijst."
+        }
       }
     },
     "list_codes": {
       "name": "Codes opvragen",
       "description": "Alle tijdelijke codes van een slot, zoals Tuya ze teruggeeft.",
-      "fields": { "device_id": { "name": "Slot", "description": "Het slot om op te vragen." } }
+      "fields": {
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot om op te vragen."
+        }
+      }
     },
     "add_profile": {
       "name": "Profiel toevoegen",
       "description": "Maakt een profiel met een vaste pincode. Geeft het gebruikers-id terug.",
       "fields": {
-        "device_id": { "name": "Slot", "description": "Het slot waar het profiel op komt." },
-        "name": { "name": "Naam", "description": "De naam van het profiel; ook de naam van de pincode in het ontgrendellog." },
-        "password": { "name": "Pincode", "description": "Alleen cijfers." }
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot waar het profiel op komt."
+        },
+        "name": {
+          "name": "Naam",
+          "description": "De naam van het profiel; ook de naam van de pincode in het ontgrendellog."
+        },
+        "password": {
+          "name": "Pincode",
+          "description": "Alleen cijfers."
+        }
       }
     },
     "delete_profile": {
       "name": "Profiel verwijderen",
       "description": "Verwijdert een profiel met al zijn codes en pasjes.",
       "fields": {
-        "device_id": { "name": "Slot", "description": "Het slot waar het profiel op staat." },
-        "user_id": { "name": "Profiel-id", "description": "Uit de attributen van de profielschakelaar of de profiellijst." }
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot waar het profiel op staat."
+        },
+        "user_id": {
+          "name": "Profiel-id",
+          "description": "Uit de attributen van de profielschakelaar of de profiellijst."
+        }
       }
     },
     "add_method": {
       "name": "Code of pasje toevoegen aan profiel",
       "description": "Een pincode wordt direct toegevoegd. Voor een pasje gaat het slot in inschrijfmodus: houd het pasje binnen een minuut tegen het paneel.",
       "fields": {
-        "device_id": { "name": "Slot", "description": "Het slot waar het profiel op staat." },
-        "user_id": { "name": "Profiel-id", "description": "Uit de attributen van de profielschakelaar of de profiellijst." },
-        "type": { "name": "Soort", "description": "Wat je toevoegt." },
-        "password": { "name": "Pincode", "description": "Bij een pincode: alleen cijfers." },
-        "name": { "name": "Naam", "description": "Zichtbaar in het ontgrendellog. Standaard de naam van het profiel." }
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot waar het profiel op staat."
+        },
+        "user_id": {
+          "name": "Profiel-id",
+          "description": "Uit de attributen van de profielschakelaar of de profiellijst."
+        },
+        "type": {
+          "name": "Soort",
+          "description": "Wat je toevoegt."
+        },
+        "password": {
+          "name": "Pincode",
+          "description": "Bij een pincode: alleen cijfers."
+        },
+        "name": {
+          "name": "Naam",
+          "description": "Zichtbaar in het ontgrendellog. Standaard de naam van het profiel."
+        }
       }
     },
     "rename_method": {
       "name": "Code of pasje hernoemen",
       "description": "Geeft een code of pasje een eigen naam.",
       "fields": {
-        "device_id": { "name": "Slot", "description": "Het slot waar het profiel op staat." },
-        "user_id": { "name": "Profiel-id", "description": "Het profiel waar de methode bij hoort." },
-        "type": { "name": "Soort", "description": "Wat voor methode." },
-        "sn": { "name": "Slotnummer", "description": "Het nummer van de methode, uit de attributen van de profielschakelaar." },
-        "name": { "name": "Naam", "description": "De nieuwe naam." }
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot waar het profiel op staat."
+        },
+        "user_id": {
+          "name": "Profiel-id",
+          "description": "Het profiel waar de methode bij hoort."
+        },
+        "type": {
+          "name": "Soort",
+          "description": "Wat voor methode."
+        },
+        "sn": {
+          "name": "Slotnummer",
+          "description": "Het nummer van de methode, uit de attributen van de profielschakelaar."
+        },
+        "name": {
+          "name": "Naam",
+          "description": "De nieuwe naam."
+        }
       }
     },
     "delete_method": {
       "name": "Code of pasje verwijderen",
       "description": "Haalt één code of pasje van een profiel af.",
       "fields": {
-        "device_id": { "name": "Slot", "description": "Het slot waar het profiel op staat." },
-        "user_id": { "name": "Profiel-id", "description": "Het profiel waar de methode bij hoort." },
-        "type": { "name": "Soort", "description": "Wat voor methode." },
-        "sn": { "name": "Slotnummer", "description": "Het nummer van de methode, uit de attributen van de profielschakelaar." }
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot waar het profiel op staat."
+        },
+        "user_id": {
+          "name": "Profiel-id",
+          "description": "Het profiel waar de methode bij hoort."
+        },
+        "type": {
+          "name": "Soort",
+          "description": "Wat voor methode."
+        },
+        "sn": {
+          "name": "Slotnummer",
+          "description": "Het nummer van de methode, uit de attributen van de profielschakelaar."
+        }
       }
     },
     "list_profiles": {
       "name": "Profielen opvragen",
       "description": "Alle leden van een slot met hun vaste codes en pasjes, inclusief app-accounts die het slot delen.",
-      "fields": { "device_id": { "name": "Slot", "description": "Het slot om op te vragen." } }
+      "fields": {
+        "device_id": {
+          "name": "Slot",
+          "description": "Het slot om op te vragen."
+        }
+      }
     },
     "refresh": {
       "name": "Verversen",
       "description": "Haalt de codes, het ontgrendellog en de profielen nu op in plaats van bij de volgende ronde.",
-      "fields": { "device_id": { "name": "Slot", "description": "Een willekeurig slot van het account; het hele account ververst." } }
+      "fields": {
+        "device_id": {
+          "name": "Slot",
+          "description": "Een willekeurig slot van het account; het hele account ververst."
+        }
+      }
+    }
+  },
+  "selector": {
+    "push_env": {
+      "options": {
+        "production": "Productie",
+        "test": "Test"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_lock": {
+      "message": "Dit slot vergrendelt zichzelf; er valt niets te sturen. Gebruik openen of ontgrendelen."
+    }
+  },
+  "issues": {
+    "subscription_expired": {
+      "title": "Tuya-cloudabonnement verlopen",
+      "description": "Tuya weigert elke aanroep omdat het cloudabonnement van het project verlopen is: {message}\n\nVerleng het op het Tuya IoT Platform onder Cloud → My Services (de Trial Edition kan gratis verlengd worden) en herlaad daarna de integratie."
+    },
+    "api_not_authorised": {
+      "title": "Smart Lock-API niet geautoriseerd",
+      "description": "Tuya weigert de aanroep: {message}\n\nOpen op het Tuya IoT Platform je project → Service API en controleer dat de Smart Lock Open Service geabonneerd en geautoriseerd is voor het project. Herlaad daarna de integratie."
+    },
+    "subscription_expiring": {
+      "title": "Tuya-cloudabonnement eindigt {date}",
+      "description": "Het IoT Core-abonnement van je Tuya-project eindigt op {date} (over {days} dagen). Daarna mislukt elke aanroep en reageren de sloten niet meer. Verleng het op het Tuya IoT Platform onder Cloud → My Services en werk daarna de datum bij in de opties van de integratie."
+    },
+    "push_unavailable": {
+      "title": "Realtime berichten geweigerd",
+      "description": "Tuya's berichtenwachtrij weigert de verbinding: {message}\n\nOpen in de Tuya-console je project → Message Service en kijk welke omgeving (test of productie) actief is; kies dezelfde in de opties van de integratie. Het pollen blijft ondertussen gewoon werken."
     }
   }
 }

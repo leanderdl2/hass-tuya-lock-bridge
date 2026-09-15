@@ -74,6 +74,19 @@ class TuyaAuthError(TuyaLockError):
     """Credentials were refused."""
 
 
+class TuyaSubscriptionError(TuyaAuthError):
+    """The project's cloud development plan has run out (code 28841002).
+
+    The Trial Edition of IoT Core expires and must be extended by hand on
+    iot.tuya.com; when it lapses every call fails with this code.
+    """
+
+
+class TuyaNotAuthorisedError(TuyaAuthError):
+    """The project may not call this API (code 28841105): the Smart Lock Open
+    Service is not subscribed or not authorised for the project."""
+
+
 class LockBusyError(TuyaLockError):
     """The lock is in enrolment mode and refuses other changes (code 2328).
 
@@ -191,6 +204,13 @@ class TuyaLockApi:
         self._access_secret = access_secret
         self._api: TuyaOpenAPI | None = None
         self._lock = threading.RLock()
+        # Calls made against the project's monthly allowance. Counted here,
+        # persisted by the coordinator, shown by a sensor.
+        self.calls = 0
+
+    @property
+    def access_secret(self) -> str:
+        return self._access_secret
 
     # ------------------------------------------------------------------ core
 
@@ -215,24 +235,32 @@ class TuyaLockApi:
                 "hold the card against the keypad, or try again in a minute",
                 code,
             )
-        if code in (1010, 1011, 1100, 1106, 28841105, 28841002):
+        if code == 28841002:
+            raise TuyaSubscriptionError(f"could not {what}: {msg}", code)
+        if code == 28841105:
+            raise TuyaNotAuthorisedError(f"could not {what}: {msg}", code)
+        if code in (1010, 1011, 1100, 1106):
             raise TuyaAuthError(f"could not {what}: {msg}", code)
         raise TuyaLockError(f"could not {what}: {msg}", code)
 
     def _get(self, path: str, params: dict | None = None, what: str = "read") -> Any:
         with self._lock:
+            self.calls += 1
             return self._check(self._client().get(path, params), what).get("result")
 
     def _post(self, path: str, body: dict | None = None, what: str = "write") -> Any:
         with self._lock:
+            self.calls += 1
             return self._check(self._client().post(path, body), what).get("result")
 
     def _put(self, path: str, body: dict | None = None, what: str = "update") -> Any:
         with self._lock:
+            self.calls += 1
             return self._check(self._client().put(path, body), what).get("result")
 
     def _delete(self, path: str, what: str = "delete") -> Any:
         with self._lock:
+            self.calls += 1
             return self._check(self._client().delete(path), what).get("result")
 
     def _ticket(self, device_id: str) -> tuple[str, str]:

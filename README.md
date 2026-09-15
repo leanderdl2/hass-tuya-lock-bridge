@@ -17,11 +17,15 @@ Per lock, one device with:
 
 | Entity | Does |
 |---|---|
+| `lock.<lock>_door` | A real lock entity for the lock card, voice assistants and Google/Alexa: open/unlock opens the door. The keypad reports no state, so it shows *unknown* at rest and *open* for a few seconds after opening |
 | `button.<lock>_open` | Opens the door |
 | `sensor.<lock>_valid_codes` | Temporary codes valid right now; the full list in its attributes |
 | `sensor.<lock>_last_unlock` | Who opened the door last, how, and when; the twenty before it in `recent` |
 | `event.<lock>_unlock` | Fires once per unlock — trigger an automation on who came in |
+| `event.<lock>_ring` | The doorbell (needs real-time messages, below) |
+| `event.<lock>_alarm` | Wrong PIN, wrong card, tamper, duress… (needs real-time messages) |
 | `switch.<lock>_profile_<name>` | One per profile: off means its codes and cards stop opening the door |
+| `sensor.<account>_api_calls` | Calls made against the Tuya project's monthly allowance |
 
 A **Locks** page in the sidebar (administrators only) to do all of this by
 hand: see the codes on a lock, create one, revoke it, open the door, manage
@@ -61,6 +65,34 @@ allowance and has to be extended periodically; when it lapses every API call
 stops, and so does this integration. Each refresh costs a handful of calls per
 lock; the interval is five minutes by default and can be changed under the
 integration's options.
+
+## Real-time messages
+
+By default the integration polls, so an unlock shows up within the refresh
+interval. Turn on **Real-time messages** in the integration's options and it
+also listens to Tuya's Message Service: an unlock triggers a refresh within
+seconds, and the doorbell and alarm events start working — those never appear
+in the unlock log, so polling cannot see them.
+
+Two things to set up on the Tuya side: enable the **Message Service** for the
+project (it has its own credit allowance; every message costs one), and note
+which **environment** it runs in — test or production. Pick the same one in
+the options; the other is refused with an HTTP 500, which the integration
+reports as a repair issue.
+
+Every decoded message is also fired on the event bus as `tuya_lock_bridge_push`,
+so you can watch in Developer tools → Events what your lock actually sends.
+Which status codes a lock reports differs per model; doorbell and alarm are
+mapped from Tuya's standard `doorbell` and `alarm_lock` codes.
+
+## When Tuya says no
+
+The Trial Edition of IoT Core expires and has to be extended by hand. When it
+lapses, or when the Smart Lock Open Service is not authorised for the project,
+the integration raises a **repair issue** that says what to do instead of
+failing quietly. Enter the plan's end date in the options and you get a
+warning a month ahead. The API-calls sensor shows how much of the monthly
+allowance this integration has used.
 
 ## A code per booking
 

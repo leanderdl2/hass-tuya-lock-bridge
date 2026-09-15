@@ -83,8 +83,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: TuyaLockConfigEntry) -> 
         devices[device_id] = TuyaDevice(device_id=device_id, name=device_id, category="", product_name="", online=False)
 
     coordinator = TuyaLockCoordinator(hass, entry, api, devices)
+    await coordinator.async_load_stats()
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    coordinator.start_push()
+    entry.async_on_unload(coordinator.stop_push)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     async_setup_services(hass)

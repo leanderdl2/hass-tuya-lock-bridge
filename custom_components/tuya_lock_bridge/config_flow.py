@@ -16,10 +16,15 @@ from .const import (
     CONF_ACCESS_SECRET,
     CONF_ENDPOINT,
     CONF_LOCKS,
+    CONF_PUSH,
+    CONF_PUSH_ENV,
     CONF_REFRESH_MINUTES,
+    CONF_SUBSCRIPTION_END,
     DEFAULT_REFRESH_MINUTES,
     DOMAIN,
     ENDPOINTS,
+    PUSH_ENV_PRODUCTION,
+    PUSH_ENV_TEST,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -148,6 +153,19 @@ class OptionsFlow(config_entries.OptionsFlow):
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(min=1, max=120, step=1, unit_of_measurement="min", mode=selector.NumberSelectorMode.BOX)
                 ),
+                # Real-time messages cost Message Service credits, so off by default.
+                vol.Required(CONF_PUSH, default=entry.options.get(CONF_PUSH, False)): selector.BooleanSelector(),
+                vol.Required(CONF_PUSH_ENV, default=entry.options.get(CONF_PUSH_ENV, PUSH_ENV_PRODUCTION)): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[PUSH_ENV_PRODUCTION, PUSH_ENV_TEST],
+                        translation_key="push_env",
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    CONF_SUBSCRIPTION_END,
+                    description={"suggested_value": entry.options.get(CONF_SUBSCRIPTION_END)},
+                ): selector.DateSelector(),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
