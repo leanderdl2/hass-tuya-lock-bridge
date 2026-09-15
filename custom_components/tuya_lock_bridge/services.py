@@ -97,7 +97,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     async def unlock(call: ServiceCall) -> None:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
-        await _run(hass, coordinator, coordinator.api.unlock, device_id)
+        await _run(hass, coordinator, coordinator.api.unlock, device_id, coordinator.devices[device_id].category)
 
     async def create_code(call: ServiceCall) -> ServiceResponse:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])

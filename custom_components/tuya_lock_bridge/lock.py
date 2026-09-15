@@ -52,7 +52,7 @@ class DoorLock(TuyaLockEntity, LockEntity):
         self._attr_is_opening = True
         self.async_write_ha_state()
         try:
-            await self.hass.async_add_executor_job(self.coordinator.api.unlock, self.device.device_id)
+            await self.hass.async_add_executor_job(self.coordinator.api.unlock, self.device.device_id, self.device.category)
         except TuyaLockError as err:
             self._attr_is_opening = False
             self.async_write_ha_state()

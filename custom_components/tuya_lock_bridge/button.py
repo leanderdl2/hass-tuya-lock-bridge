@@ -26,6 +26,6 @@ class OpenDoorButton(TuyaLockEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         try:
-            await self.hass.async_add_executor_job(self.coordinator.api.unlock, self.device.device_id)
+            await self.hass.async_add_executor_job(self.coordinator.api.unlock, self.device.device_id, self.device.category)
         except TuyaLockError as err:
             raise HomeAssistantError(str(err)) from err

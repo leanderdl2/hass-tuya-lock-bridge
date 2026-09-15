@@ -140,9 +140,19 @@ manage those in the Tuya app.
 ## Which locks
 
 Developed against a Nivian NV-ACCESS-PIN-RFID-W WiFi keypad (Tuya category
-`mk`), where unlocking, code management and profiles are confirmed on physical
-hardware. It should work with any Tuya lock that exposes the Smart Lock Open
-Service APIs; reports about other models are welcome.
+`mk`), where unlocking, code management, profiles and push are confirmed on
+physical hardware. Nothing else has been tested on hardware yet, so here is
+what Tuya's own API documentation says to expect, family by family:
+
+| Lock family | Temporary codes | Open the door | Unlock log | Profiles |
+|---|---|---|---|---|
+| Wi-Fi access control keypads (`mk`) | ✅ tested | ✅ tested | ✅ tested | ✅ tested |
+| Wi-Fi residential locks (`ms`, `jtmspro` over Wi-Fi, video locks) | same API, should work | needs *Remote unlock* enabled in the Tuya app; the integration tries the three documented endpoints in turn | same API | same API |
+| Zigbee locks (through a gateway) | same API; a code may stay "waiting" until the lock syncs | documented, untested | documented, untested | documented, untested |
+| Bluetooth-only locks (`jtmspro` over BLE, `ms` via phone) | poor fit: these mostly use *offline* passwords, which this integration does not create | only while the lock is awake (a key press on the keypad first) | only after the phone app has synced | unlikely |
+
+Reports about other models — working or not — are welcome as issues; a
+diagnostic download from the device page tells most of the story.
 
 **Recurring daily patterns are the exception.** Tuya's documentation states
 they are supported only by Zigbee residential lock pro and hotel lock. The

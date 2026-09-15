@@ -207,6 +207,9 @@ class TuyaLockApi:
         # Calls made against the project's monthly allowance. Counted here,
         # persisted by the coordinator, shown by a sensor.
         self.calls = 0
+        # Which endpoint variant a device answered to, learned on first use.
+        self._ticket_path: dict[str, str] = {}
+        self._unlock_method: dict[str, str] = {}
 
     @property
     def access_secret(self) -> str:
@@ -264,9 +267,28 @@ class TuyaLockApi:
             return self._check(self._client().delete(path), what).get("result")
 
     def _ticket(self, device_id: str) -> tuple[str, str]:
-        """(ticket_id, plain 16-char ticket key)."""
-        result = self._post(f"/v1.0/smart-lock/devices/{device_id}/password-ticket", what="obtain a ticket")
-        return result["ticket_id"], decrypt_ticket_key(result["ticket_key"], self._access_secret)
+        """(ticket_id, plain 16-char ticket key).
+
+        Two endpoints hand out tickets; the smart-lock one is what the access
+        control keypad answers, the door-lock one is what Tuya documents for
+        every lock type. Whichever works first is remembered per device.
+        """
+        paths = [f"/v1.0/smart-lock/devices/{device_id}/password-ticket", f"/v1.0/devices/{device_id}/door-lock/password-ticket"]
+        if (known := self._ticket_path.get(device_id)) in paths:
+            paths.remove(known)
+            paths.insert(0, known)
+        last: TuyaLockError | None = None
+        for path in paths:
+            try:
+                result = self._post(path, what="obtain a ticket")
+            except TuyaAuthError:
+                raise
+            except TuyaLockError as err:
+                last = err
+                continue
+            self._ticket_path[device_id] = path
+            return result["ticket_id"], decrypt_ticket_key(result["ticket_key"], self._access_secret)
+        raise last  # type: ignore[misc]
 
     # --------------------------------------------------------------- devices
 
@@ -290,14 +312,51 @@ class TuyaLockApi:
 
     # ---------------------------------------------------------------- unlock
 
-    def unlock(self, device_id: str) -> None:
+    # The three ways Tuya documents for opening a door without a password,
+    # each for a different family of locks:
+    #   v1.1 open-door with a channel  - Wi-Fi access control devices (`mk`)
+    #   smart-lock door-operate        - Wi-Fi, Zigbee, Bluetooth and video locks
+    #   v1.0 open-door                 - the same families, older API
+    # Each attempt needs a fresh ticket. The one that works is remembered per
+    # device, so a lock costs one extra call the first time only.
+    UNLOCK_METHODS = ("access_control", "door_operate", "open_door")
+
+    def _unlock_once(self, device_id: str, method: str) -> None:
+        ticket_id, _ = self._ticket(device_id)
+        if method == "access_control":
+            self._post(f"/v1.1/devices/{device_id}/door-lock/password-free/open-door", {"ticket_id": ticket_id, "channel_id": 1}, "open the door")
+        elif method == "door_operate":
+            self._post(f"/v1.0/smart-lock/devices/{device_id}/password-free/door-operate", {"ticket_id": ticket_id, "open": True}, "open the door")
+        else:
+            self._post(f"/v1.0/devices/{device_id}/door-lock/password-free/open-door", {"ticket_id": ticket_id}, "open the door")
+
+    def unlock(self, device_id: str, category: str = "") -> None:
         with self._lock:
-            ticket_id, _ = self._ticket(device_id)
-            self._post(
-                f"/v1.1/devices/{device_id}/door-lock/password-free/open-door",
-                {"ticket_id": ticket_id, "channel_id": 1},
-                "open the door",
-            )
+            order = list(self.UNLOCK_METHODS)
+            if category and category != "mk":
+                order = ["door_operate", "open_door", "access_control"]
+            if (known := self._unlock_method.get(device_id)) in order:
+                order.remove(known)
+                order.insert(0, known)
+            last: TuyaLockError | None = None
+            for method in order:
+                try:
+                    self._unlock_once(device_id, method)
+                except (TuyaAuthError, LockBusyError):
+                    raise
+                except TuyaLockError as err:
+                    last = err
+                    continue
+                self._unlock_method[device_id] = method
+                return
+            assert last is not None
+            msg = str(last)
+            if "not support" in msg.lower():
+                # Tuya's answer when the lock will not take a remote unlock:
+                # the setting is off in the app, or a battery lock is asleep.
+                msg += (" - the lock refuses remote unlocking. Enable 'Remote unlock' in the Tuya app for this lock;"
+                        " battery locks also have to be awake (press a key on the keypad first)")
+            raise TuyaLockError(msg, last.code)
 
     # ------------------------------------------------------- temporary codes
 
