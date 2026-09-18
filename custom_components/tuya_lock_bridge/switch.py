@@ -112,6 +112,10 @@ class ProfileSwitch(TuyaLockEntity, SwitchEntity):
         if member is not None:
             member["active"] = active
             self.async_write_ha_state()
+        await self.coordinator.async_record(
+            self._context, "enable_profile" if active else "disable_profile", self.device.device_id,
+            name=(member or {}).get("name", self.user_id), user_id=self.user_id,
+        )
         await self.coordinator.async_refresh()
 
     async def async_turn_on(self, **kwargs) -> None:

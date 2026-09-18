@@ -29,3 +29,5 @@ class OpenDoorButton(TuyaLockEntity, ButtonEntity):
             await self.hass.async_add_executor_job(self.coordinator.api.unlock, self.device.device_id, self.device.category)
         except TuyaLockError as err:
             raise HomeAssistantError(str(err)) from err
+        # self._context is the service call's context: it carries the user.
+        await self.coordinator.async_record(self._context, "unlock", self.device.device_id)

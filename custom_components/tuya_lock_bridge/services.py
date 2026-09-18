@@ -15,7 +15,7 @@ from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.util import dt as dt_util
 
 from .api import TuyaLockError, build_schedule
-from .const import DATA_MEMBERS, DOMAIN
+from .const import DATA_CODES, DATA_MEMBERS, DOMAIN
 from .coordinator import TuyaLockCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,6 +91,20 @@ async def _run(hass: HomeAssistant, coordinator: TuyaLockCoordinator, func, *arg
         raise HomeAssistantError(str(err)) from err
 
 
+def _code_name(coordinator: TuyaLockCoordinator, device_id: str, code_id: Any) -> str:
+    for c in (coordinator.data or {}).get(device_id, {}).get(DATA_CODES, []):
+        if str(c.get("id")) == str(code_id):
+            return c.get("name") or str(code_id)
+    return str(code_id)
+
+
+def _profile_name(coordinator: TuyaLockCoordinator, device_id: str, user_id: Any) -> str:
+    for m in (coordinator.data or {}).get(device_id, {}).get(DATA_MEMBERS, []):
+        if str(m.get("user_id")) == str(user_id):
+            return m.get("name") or str(user_id)
+    return str(user_id)
+
+
 def async_setup_services(hass: HomeAssistant) -> None:
     if hass.services.has_service(DOMAIN, "unlock"):
         return
@@ -98,6 +112,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
     async def unlock(call: ServiceCall) -> None:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
         await _run(hass, coordinator, coordinator.api.unlock, device_id, coordinator.devices[device_id].category)
+        await coordinator.async_record(call.context, "unlock", device_id)
 
     async def create_code(call: ServiceCall) -> ServiceResponse:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
@@ -120,6 +135,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
                 time_zone=hass.config.time_zone,
             ),
         )
+        await coordinator.async_record(call.context, "create_code", device_id, name=name, code_id=code_id)
         await coordinator.async_refresh()
         return {"code_id": code_id, "name": name}
 
@@ -139,17 +155,20 @@ def async_setup_services(hass: HomeAssistant) -> None:
             coordinator,
             lambda: coordinator.api.create_code(device_id, pin, name, _ts(d["checkin"]), _ts(d["checkout"])),
         )
+        await coordinator.async_record(call.context, "create_code", device_id, name=name, code_id=code_id)
         await coordinator.async_refresh()
         return {"code_id": code_id, "name": name}
 
     async def revoke_code(call: ServiceCall) -> None:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
         await _run(hass, coordinator, coordinator.api.revoke_code, device_id, call.data["code_id"])
+        await coordinator.async_record(call.context, "revoke_code", device_id, name=_code_name(coordinator, device_id, call.data["code_id"]), code_id=call.data["code_id"])
         await coordinator.async_refresh()
 
     async def purge_code(call: ServiceCall) -> None:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
         await _run(hass, coordinator, coordinator.api.purge_code, device_id, call.data["code_id"])
+        await coordinator.async_record(call.context, "purge_code", device_id, name=_code_name(coordinator, device_id, call.data["code_id"]), code_id=call.data["code_id"])
         await coordinator.async_refresh()
 
     async def list_codes(call: ServiceCall) -> ServiceResponse:
@@ -171,6 +190,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             return {"user_id": uid, "sn": sn}
 
         result = await _run(hass, coordinator, _do)
+        await coordinator.async_record(call.context, "add_profile", device_id, name=name, user_id=result["user_id"])
         await coordinator.async_refresh()
         return result
 
@@ -191,6 +211,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             coordinator.api.delete_member(device_id, uid)
 
         await _run(hass, coordinator, _do)
+        await coordinator.async_record(call.context, "delete_profile", device_id, name=_profile_name(coordinator, device_id, uid), user_id=uid)
         await coordinator.async_refresh()
 
     async def add_method(call: ServiceCall) -> ServiceResponse:
@@ -201,6 +222,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             coordinator,
             lambda: coordinator.api.enrol_method(device_id, d["user_id"], d["type"], d.get("password"), d.get("name")),
         )
+        await coordinator.async_record(call.context, "add_method", device_id, name=_profile_name(coordinator, device_id, d["user_id"]), type=d["type"], sn=sn)
         await coordinator.async_refresh()
         return {"sn": sn, "pending": sn is None}
 
@@ -208,12 +230,14 @@ def async_setup_services(hass: HomeAssistant) -> None:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
         d = call.data
         await _run(hass, coordinator, coordinator.api.rename_method, device_id, d["type"], d["sn"], d["name"])
+        await coordinator.async_record(call.context, "rename_method", device_id, name=d["name"], type=d["type"], sn=d["sn"])
         await coordinator.async_refresh()
 
     async def delete_method(call: ServiceCall) -> None:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
         d = call.data
         await _run(hass, coordinator, coordinator.api.delete_method, device_id, d["user_id"], d["type"], d["sn"])
+        await coordinator.async_record(call.context, "delete_method", device_id, name=_profile_name(coordinator, device_id, d["user_id"]), type=d["type"], sn=d["sn"])
         await coordinator.async_refresh()
 
     async def list_profiles(call: ServiceCall) -> ServiceResponse:

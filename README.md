@@ -96,6 +96,16 @@ a wrong PIN are not reported to the cloud at all — the Tuya app gets no
 notification for them either — so on that model only the faster unlock
 matters.
 
+## Who did what
+
+Every change made through the integration — opening the door, creating or
+revoking a code, adding or disabling a profile, enrolling a card — fires a
+`tuya_lock_bridge_action` event carrying the Home Assistant user who did it
+(or `automation`), and shows up in the **logbook** as "Sergio opened the
+door" or "Leander disabled profile Cleaner". Tuya itself logs an opening from
+Home Assistant as the linked app account; the unlock log matches those against
+recent Home Assistant openings and names the user instead.
+
 ## When Tuya says no
 
 The Trial Edition of IoT Core expires and has to be extended by hand. When it

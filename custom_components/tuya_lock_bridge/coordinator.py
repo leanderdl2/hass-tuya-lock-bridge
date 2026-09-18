@@ -15,11 +15,12 @@ the event entities directly.
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date, datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Context, HomeAssistant, callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
@@ -38,6 +39,7 @@ from .api import (
     temporary_slot,
 )
 from .const import (
+    BUS_EVENT_ACTION,
     BUS_EVENT_PUSH,
     CONF_ACCESS_ID,
     CONF_ACCESS_SECRET,
@@ -127,6 +129,43 @@ class TuyaLockCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         self.push_connected = False
         self.push_status = "off"
         self._pending_refresh: dict[str, Any] = {}
+        # Doors opened from Home Assistant: (device_id, unix time, user name).
+        # Tuya logs such an opening as the app account, so the log is matched
+        # against this list to say which HA user it really was.
+        self.ha_opens: list[tuple[str, float, str]] = []
+
+    # --------------------------------------------------------------- audit
+
+    async def async_user_name(self, context: Context | None) -> str:
+        """Who is behind a service call: the user's name, or 'automation'."""
+        if context is not None and context.user_id:
+            user = await self.hass.auth.async_get_user(context.user_id)
+            if user is not None:
+                return user.name or "user"
+        return "automation"
+
+    async def async_record(self, context: Context | None, action: str, device_id: str, **details: Any) -> str:
+        """Fire the audit event for a change made through this integration."""
+        user = await self.async_user_name(context)
+        device = self.devices.get(device_id)
+        if action == "unlock":
+            self.ha_opens.append((device_id, time.time(), user))
+            del self.ha_opens[:-50]
+        self.hass.bus.async_fire(
+            BUS_EVENT_ACTION,
+            {"action": action, "user": user, "device_id": device_id, "lock": device.name if device else device_id, **details},
+            context=context,
+        )
+        return user
+
+    def _ha_user_for(self, device_id: str, log_time: float) -> str | None:
+        """The HA user behind an 'app' unlock, if one was sent from here at
+        about that time. The keypad's clock was measured 37 s slow, hence the
+        wide window on the early side."""
+        for dev, when, user in reversed(self.ha_opens):
+            if dev == device_id and when - 120 <= log_time <= when + 60:
+                return user
+        return None
 
     @property
     def lock_ids(self) -> list[str]:
@@ -142,6 +181,9 @@ class TuyaLockCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             key=lambda u: u["timestamp"],
             reverse=True,
         )
+        for u in unlocks:
+            if u["method"] == "app" and (user := self._ha_user_for(device_id, u["timestamp"])):
+                u["who"] = f"{user} (Home Assistant)"
         members = self.api.list_members(device_id)
         return {DATA_CODES: codes, DATA_UNLOCKS: unlocks, DATA_MEMBERS: members}
 

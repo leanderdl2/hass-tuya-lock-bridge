@@ -60,6 +60,7 @@ class DoorLock(TuyaLockEntity, LockEntity):
         self._attr_is_opening = False
         self._attr_is_open = True
         self.async_write_ha_state()
+        await self.coordinator.async_record(self._context, "unlock", self.device.device_id)
         if self._cancel_reset is not None:
             self._cancel_reset()
         self._cancel_reset = async_call_later(self.hass, OPEN_SECONDS, self._reset)

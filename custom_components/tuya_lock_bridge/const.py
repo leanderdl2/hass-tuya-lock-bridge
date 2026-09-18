@@ -1,7 +1,7 @@
 """Constants for Tuya Lock Bridge."""
 
 DOMAIN = "tuya_lock_bridge"
-VERSION = "0.3.3"
+VERSION = "0.4.0"
 
 CONF_ACCESS_ID = "access_id"
 CONF_ACCESS_SECRET = "access_secret"
@@ -54,6 +54,9 @@ ALARM_TYPES = ["wrong_password", "wrong_card", "wrong_fingerprint", "wrong_face"
 # Fired on the Home Assistant bus for every decoded push message, so anyone can
 # see what a lock actually sends without enabling debug logging.
 BUS_EVENT_PUSH = f"{DOMAIN}_push"
+# Fired for every change made through this integration, with the Home
+# Assistant user that made it; described in the logbook by logbook.py.
+BUS_EVENT_ACTION = f"{DOMAIN}_action"
 
 # Repair issue ids
 ISSUE_SUBSCRIPTION_EXPIRED = "subscription_expired"
