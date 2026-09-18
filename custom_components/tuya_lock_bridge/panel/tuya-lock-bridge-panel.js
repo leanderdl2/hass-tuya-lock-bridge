@@ -243,6 +243,11 @@ class TuyaLockBridgePanel extends HTMLElement {
   }
   get hass() { return this._hass; }
 
+  // The same element doubles as a dashboard card: add this file as a
+  // dashboard resource and use `type: custom:tuya-lock-bridge-panel`.
+  setConfig(config) { this._config = config || {}; }
+  getCardSize() { return 12; }
+
   // ------------------------------------------------------------- helpers
   get T() {
     const lang = (this._hass?.language || "en").slice(0, 2);

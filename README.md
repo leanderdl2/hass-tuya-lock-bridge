@@ -32,6 +32,11 @@ hand: see the codes on a lock, create one, revoke it, open the door, manage
 profiles and their PINs and cards. It is a custom panel that talks to Home
 Assistant over its own connection — no port, no token.
 
+The same page works as a **dashboard card**: add
+`/tuya_lock_bridge/panel.js` as a dashboard resource (Settings → Dashboards →
+⋮ → Resources, type *JavaScript module*), then use a card of type
+`custom:tuya-lock-bridge-panel` — a *panel* view gives it the full width.
+
 And services (actions) for everything the entities cannot express:
 `tuya_lock_bridge.book`, `create_code`, `revoke_code`, `purge_code`,
 `list_codes`, `add_profile`, `delete_profile`, `add_method`, `rename_method`,

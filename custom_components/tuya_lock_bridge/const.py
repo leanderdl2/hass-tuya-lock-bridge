@@ -1,7 +1,7 @@
 """Constants for Tuya Lock Bridge."""
 
 DOMAIN = "tuya_lock_bridge"
-VERSION = "0.3.2"
+VERSION = "0.3.3"
 
 CONF_ACCESS_ID = "access_id"
 CONF_ACCESS_SECRET = "access_secret"
