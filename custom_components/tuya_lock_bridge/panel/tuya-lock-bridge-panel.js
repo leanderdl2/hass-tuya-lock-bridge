@@ -12,10 +12,10 @@ const TEXT = {
     heading: "Access codes",
     lock: "Lock",
     openDoor: "Open the door",
-    codesHeading: "Codes on this lock",
+    codesHeading: "Temporary codes",
     colName: "Name", colFrom: "Valid from", colUntil: "Valid until", colStatus: "Status",
     loading: "Loading…",
-    newHeading: "New code",
+    newHeading: "New temporary code",
     name: "Name", namePlaceholder: "Cleaner", pin: "PIN",
     validFrom: "Valid from", validUntil: "Valid until",
     pattern: "Pattern",
@@ -74,10 +74,10 @@ const TEXT = {
     heading: "Toegangscodes",
     lock: "Slot",
     openDoor: "Deur openen",
-    codesHeading: "Codes op dit slot",
+    codesHeading: "Tijdelijke codes",
     colName: "Naam", colFrom: "Geldig van", colUntil: "Geldig tot", colStatus: "Status",
     loading: "Laden…",
-    newHeading: "Nieuwe code",
+    newHeading: "Nieuwe tijdelijke code",
     name: "Naam", namePlaceholder: "Schoonmaker", pin: "Pincode",
     validFrom: "Geldig vanaf", validUntil: "Geldig tot",
     pattern: "Patroon",
@@ -175,6 +175,22 @@ const HTML = `
   <div><button id="refresh" class="sec" data-i18n="refresh"></button></div>
 </div></div>
 
+<h2 data-i18n="profilesHeading"></h2>
+<div class="card">
+  <p class="note" data-i18n="cardsNote"></p>
+  <table><thead><tr><th data-i18n="colProfile"></th><th data-i18n="colMethods"></th><th></th></tr></thead>
+  <tbody id="profielen"></tbody></table>
+</div>
+
+<h2 data-i18n="newProfileHeading"></h2>
+<div class="card">
+  <div class="row">
+    <div><label for="pnaam" data-i18n="profileName"></label><input id="pnaam" data-i18n-ph="namePlaceholder"></div>
+    <div><label for="ppin" data-i18n="profilePin"></label><input id="ppin" inputmode="numeric" placeholder="123456"></div>
+  </div>
+  <button id="padd" data-i18n="addProfile"></button>
+</div>
+
 <h2 data-i18n="codesHeading"></h2>
 <div class="card"><table><thead><tr>
   <th data-i18n="colName"></th><th data-i18n="colFrom"></th><th data-i18n="colUntil"></th><th data-i18n="colStatus"></th><th></th>
@@ -205,21 +221,6 @@ const HTML = `
   <button id="add" data-i18n="create"></button>
 </div>
 
-<h2 data-i18n="profilesHeading"></h2>
-<div class="card">
-  <p class="note" data-i18n="cardsNote"></p>
-  <table><thead><tr><th data-i18n="colProfile"></th><th data-i18n="colMethods"></th><th></th></tr></thead>
-  <tbody id="profielen"></tbody></table>
-</div>
-
-<h2 data-i18n="newProfileHeading"></h2>
-<div class="card">
-  <div class="row">
-    <div><label for="pnaam" data-i18n="profileName"></label><input id="pnaam" data-i18n-ph="namePlaceholder"></div>
-    <div><label for="ppin" data-i18n="profilePin"></label><input id="ppin" inputmode="numeric" placeholder="123456"></div>
-  </div>
-  <button id="padd" data-i18n="addProfile"></button>
-</div>
 `;
 
 const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (_, k) => (v[k] !== undefined ? v[k] : ""));
