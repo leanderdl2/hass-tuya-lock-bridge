@@ -77,16 +77,25 @@ SIGNAL_ALARM = f"{DOMAIN}_alarm"
 
 def code_status(code: dict[str, Any], now: int) -> str:
     """Same rules as everywhere else: revoked by phase, expired/scheduled by
-    the times (phases flip once a code has expired), pending by phase 12."""
+    the times (phases flip once a code has expired).
+
+    Phase 12 ("to be synced to the lock") is deliberately not a status of its
+    own: on the WiFi keypad this was built against every code created through
+    the API stays in phase 12 forever and works regardless - measured by a
+    phase-12 code opening the door. `code_confirmed` exposes it separately.
+    """
     if code.get("phase") == 17:
         return "revoked"
     if code.get("invalid_time", 0) < now:
         return "expired"
     if code.get("effective_time", 0) > now:
         return "scheduled"
-    if code.get("phase") == 12:
-        return "waiting"
     return "active"
+
+
+def code_confirmed(code: dict[str, Any]) -> bool:
+    """Whether the lock acknowledged the code (phase 2)."""
+    return code.get("phase") == 2
 
 
 def summarise_unlock(log: dict[str, Any], codes_by_sn: dict[int, str]) -> dict[str, Any]:

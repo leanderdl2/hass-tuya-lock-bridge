@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DATA_CODES, DATA_UNLOCKS
-from .coordinator import TuyaLockCoordinator, code_status
+from .coordinator import TuyaLockCoordinator, code_confirmed, code_status
 from .entity import TuyaLockEntity
 
 
@@ -54,6 +54,7 @@ class ValidCodesSensor(TuyaLockEntity, SensorEntity):
                         "from": datetime.fromtimestamp(code.get("effective_time", 0)).isoformat(timespec="minutes"),
                         "until": datetime.fromtimestamp(code.get("invalid_time", 0)).isoformat(timespec="minutes"),
                         "status": status,
+                        "confirmed": code_confirmed(code),
                         "repeats": bool(code.get("schedule_list")),
                     }
                 )
@@ -62,7 +63,7 @@ class ValidCodesSensor(TuyaLockEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         _, counts = self._rows()
-        return counts.get("active", 0) + counts.get("waiting", 0)
+        return counts.get("active", 0)
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -71,7 +72,6 @@ class ValidCodesSensor(TuyaLockEntity, SensorEntity):
             "codes": rows,
             "scheduled": counts.get("scheduled", 0),
             "expired": counts.get("expired", 0),
-            "waiting_for_lock": counts.get("waiting", 0),
         }
 
 

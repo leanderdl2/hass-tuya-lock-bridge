@@ -41,7 +41,8 @@ const TEXT = {
     needWindow: "Fill in the daily time window.",
     createdOk: "Code created. It takes a minute or two before the lock knows it.",
     noLocks: "No locks configured yet. Add the integration under Settings → Devices & services.",
-    revoked: "revoked", expired: "expired", scheduled: "scheduled", waiting: "waiting for lock", active: "active",
+    revoked: "revoked", expired: "expired", scheduled: "scheduled", active: "active",
+    unconfirmed: "The lock has not confirmed receiving this code. On WiFi keypads that is normal and the code works anyway.",
     profilesHeading: "Profiles",
     colProfile: "Profile", colMethods: "Unlock methods",
     appAccount: "app account", disabled: "disabled",
@@ -102,7 +103,8 @@ const TEXT = {
     needWindow: "Vul het dagelijkse tijdvenster in.",
     createdOk: "Code aangemaakt. Het duurt 1 tot 2 minuten voor het slot hem kent.",
     noLocks: "Nog geen sloten ingesteld. Voeg de integratie toe onder Instellingen → Apparaten & diensten.",
-    revoked: "ingetrokken", expired: "verlopen", scheduled: "gepland", waiting: "wacht op slot", active: "actief",
+    revoked: "ingetrokken", expired: "verlopen", scheduled: "gepland", active: "actief",
+    unconfirmed: "Het slot heeft de ontvangst van deze code niet bevestigd. Bij WiFi-keypads is dat normaal en werkt de code gewoon.",
     profilesHeading: "Profielen",
     colProfile: "Profiel", colMethods: "Ontgrendelmethodes",
     appAccount: "app-account", disabled: "uitgeschakeld",
@@ -269,7 +271,9 @@ class TuyaLockBridgePanel extends HTMLElement {
   }
   fmt(iso) {
     const d = new Date(iso);
-    return d.toLocaleString(this._hass.language, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    const opts = { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" };
+    if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+    return d.toLocaleString(this._hass.language, opts);
   }
 
   // --------------------------------------------------------------- build
@@ -325,7 +329,6 @@ class TuyaLockBridgePanel extends HTMLElement {
     if (c.phase === 17) return ["revoked", "off"];
     if (c.invalid_time < now) return ["expired", "off"];
     if (c.effective_time > now) return ["scheduled", "wait"];
-    if (c.phase === 12) return ["waiting", "wait"];
     return ["active", "ok"];
   }
   patternText(c) {
@@ -348,7 +351,7 @@ class TuyaLockBridgePanel extends HTMLElement {
         const [key, cls] = this.status(c, now);
         const tr = document.createElement("tr");
         tr.innerHTML = `<td></td><td class="num">${this.fmt(c.effective_time * 1000)}</td><td class="num">${this.fmt(c.invalid_time * 1000)}</td>
-          <td><span class="tag ${cls}">${T[key]}</span></td><td style="text-align:right"></td>`;
+          <td><span class="tag ${cls}" ${key === "active" && c.phase === 12 ? `title="${T.unconfirmed}"` : ""}>${T[key]}${key === "active" && c.phase === 12 ? " °" : ""}</span></td><td style="text-align:right"></td>`;
         tr.firstElementChild.textContent = c.name;
         const p = this.patternText(c);
         if (p) { const s = document.createElement("small"); s.textContent = p; tr.firstElementChild.appendChild(s); }
