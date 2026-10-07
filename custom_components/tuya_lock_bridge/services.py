@@ -159,17 +159,25 @@ def async_setup_services(hass: HomeAssistant) -> None:
         await coordinator.async_refresh()
         return {"code_id": code_id, "name": name}
 
-    async def revoke_code(call: ServiceCall) -> None:
+    async def revoke_code(call: ServiceCall) -> ServiceResponse:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
-        await _run(hass, coordinator, coordinator.api.revoke_code, device_id, call.data["code_id"])
-        await coordinator.async_record(call.context, "revoke_code", device_id, name=_code_name(coordinator, device_id, call.data["code_id"]), code_id=call.data["code_id"])
+        code_id = call.data["code_id"]
+        name = _code_name(coordinator, device_id, code_id)
+        await _run(hass, coordinator, coordinator.api.revoke_code, device_id, code_id)
+        await coordinator.async_record(call.context, "revoke_code", device_id, name=name, code_id=code_id)
         await coordinator.async_refresh()
+        # An answer, so an automation can tell a success from a skipped step
+        # with `response_variable` and `continue_on_error`.
+        return {"code_id": code_id, "name": name}
 
-    async def purge_code(call: ServiceCall) -> None:
+    async def purge_code(call: ServiceCall) -> ServiceResponse:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
-        await _run(hass, coordinator, coordinator.api.purge_code, device_id, call.data["code_id"])
-        await coordinator.async_record(call.context, "purge_code", device_id, name=_code_name(coordinator, device_id, call.data["code_id"]), code_id=call.data["code_id"])
+        code_id = call.data["code_id"]
+        name = _code_name(coordinator, device_id, code_id)
+        await _run(hass, coordinator, coordinator.api.purge_code, device_id, code_id)
+        await coordinator.async_record(call.context, "purge_code", device_id, name=name, code_id=code_id)
         await coordinator.async_refresh()
+        return {"code_id": code_id, "name": name}
 
     async def list_codes(call: ServiceCall) -> ServiceResponse:
         coordinator, device_id = _resolve(hass, call.data[ATTR_DEVICE])
@@ -252,8 +260,8 @@ def async_setup_services(hass: HomeAssistant) -> None:
     reg(DOMAIN, "unlock", unlock, schema=SCHEMA_DEVICE)
     reg(DOMAIN, "create_code", create_code, schema=SCHEMA_CREATE_CODE, supports_response=SupportsResponse.OPTIONAL)
     reg(DOMAIN, "book", book, schema=SCHEMA_BOOK, supports_response=SupportsResponse.OPTIONAL)
-    reg(DOMAIN, "revoke_code", revoke_code, schema=SCHEMA_CODE)
-    reg(DOMAIN, "purge_code", purge_code, schema=SCHEMA_CODE)
+    reg(DOMAIN, "revoke_code", revoke_code, schema=SCHEMA_CODE, supports_response=SupportsResponse.OPTIONAL)
+    reg(DOMAIN, "purge_code", purge_code, schema=SCHEMA_CODE, supports_response=SupportsResponse.OPTIONAL)
     reg(DOMAIN, "list_codes", list_codes, schema=SCHEMA_DEVICE, supports_response=SupportsResponse.ONLY)
     reg(DOMAIN, "add_profile", add_profile, schema=SCHEMA_ADD_PROFILE, supports_response=SupportsResponse.OPTIONAL)
     reg(DOMAIN, "delete_profile", delete_profile, schema=SCHEMA_PROFILE)

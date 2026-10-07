@@ -7,6 +7,7 @@ from pathlib import Path
 
 from homeassistant.components import frontend
 from homeassistant.components.http import StaticPathConfig
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
@@ -19,6 +20,8 @@ from .services import async_setup_services
 _LOGGER = logging.getLogger(__name__)
 
 type TuyaLockConfigEntry = ConfigEntry[TuyaLockCoordinator]
+
+CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
 PANEL_URL_PATH = "tuya-lock-bridge"
 PANEL_SCRIPT_URL = "/tuya_lock_bridge/panel.js"
@@ -62,6 +65,18 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
         require_admin=True,
     )
     store["panel"] = True
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Register the services as soon as the integration loads.
+
+    They used to be registered per config entry, which left a window during
+    start-up - the first Tuya call can take a while - in which an automation
+    calling one got "service not found" instead of a readable error. Measured
+    on 30 September 2026, when two scheduled automations hit that window.
+    """
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TuyaLockConfigEntry) -> bool:

@@ -41,7 +41,9 @@ And services (actions) for everything the entities cannot express:
 `tuya_lock_bridge.book`, `create_code`, `revoke_code`, `purge_code`,
 `list_codes`, `add_profile`, `delete_profile`, `add_method`, `rename_method`,
 `delete_method`, `list_profiles`, `unlock`, `refresh`. The ones that create
-something answer with its id, so an automation can keep it for later.
+something answer with its id, so an automation can keep it for later;
+`revoke_code` and `purge_code` answer too, so a step with
+`continue_on_error` can tell a success from a skipped one.
 
 Entity names follow your Home Assistant language; Dutch and English are
 included.
