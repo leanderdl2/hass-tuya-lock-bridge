@@ -199,6 +199,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
         result = await _run(hass, coordinator, _do)
         await coordinator.async_record(call.context, "add_profile", device_id, name=name, user_id=result["user_id"])
+        coordinator.force_members(device_id)
         await coordinator.async_refresh()
         return result
 
@@ -220,6 +221,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
         await _run(hass, coordinator, _do)
         await coordinator.async_record(call.context, "delete_profile", device_id, name=_profile_name(coordinator, device_id, uid), user_id=uid)
+        coordinator.force_members(device_id)
         await coordinator.async_refresh()
 
     async def add_method(call: ServiceCall) -> ServiceResponse:
@@ -231,6 +233,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             lambda: coordinator.api.enrol_method(device_id, d["user_id"], d["type"], d.get("password"), d.get("name")),
         )
         await coordinator.async_record(call.context, "add_method", device_id, name=_profile_name(coordinator, device_id, d["user_id"]), type=d["type"], sn=sn)
+        coordinator.force_members(device_id)
         await coordinator.async_refresh()
         return {"sn": sn, "pending": sn is None}
 
@@ -239,6 +242,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         d = call.data
         await _run(hass, coordinator, coordinator.api.rename_method, device_id, d["type"], d["sn"], d["name"])
         await coordinator.async_record(call.context, "rename_method", device_id, name=d["name"], type=d["type"], sn=d["sn"])
+        coordinator.force_members(device_id)
         await coordinator.async_refresh()
 
     async def delete_method(call: ServiceCall) -> None:
@@ -246,6 +250,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         d = call.data
         await _run(hass, coordinator, coordinator.api.delete_method, device_id, d["user_id"], d["type"], d["sn"])
         await coordinator.async_record(call.context, "delete_method", device_id, name=_profile_name(coordinator, device_id, d["user_id"]), type=d["type"], sn=d["sn"])
+        coordinator.force_members(device_id)
         await coordinator.async_refresh()
 
     async def list_profiles(call: ServiceCall) -> ServiceResponse:

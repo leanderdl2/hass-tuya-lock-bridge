@@ -70,6 +70,12 @@ STORE_VERSION = 1
 # Tuya writes the unlock log a moment after the status report.
 PUSH_REFRESH_DELAY = 3
 EXPIRY_WARNING_DAYS = 30
+# Members (profiles with their PINs and cards) cost one call plus one or two
+# per member, which is most of a refresh. They only change when someone
+# changes them, so they are fetched on a slow clock of their own - and at
+# once after a change made through Home Assistant, which calls
+# force_members(). A change made in the Tuya app shows up within this window.
+MEMBERS_INTERVAL = 6 * 3600
 
 SIGNAL_RING = f"{DOMAIN}_ring"
 SIGNAL_ALARM = f"{DOMAIN}_alarm"
@@ -142,6 +148,15 @@ class TuyaLockCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         # Tuya logs such an opening as the app account, so the log is matched
         # against this list to say which HA user it really was.
         self.ha_opens: list[tuple[str, float, str]] = []
+        # When the members of a lock were last fetched; 0 forces a fetch.
+        self._members_at: dict[str, float] = {}
+
+    def force_members(self, device_id: str | None = None) -> None:
+        """Fetch the members again on the next refresh, after a change."""
+        if device_id is None:
+            self._members_at.clear()
+        else:
+            self._members_at.pop(device_id, None)
 
     # --------------------------------------------------------------- audit
 
@@ -193,7 +208,12 @@ class TuyaLockCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         for u in unlocks:
             if u["method"] == "app" and (user := self._ha_user_for(device_id, u["timestamp"])):
                 u["who"] = f"{user} (Home Assistant)"
-        members = self.api.list_members(device_id)
+        known = (self.data or {}).get(device_id, {}).get(DATA_MEMBERS)
+        if known is not None and time.time() - self._members_at.get(device_id, 0) < MEMBERS_INTERVAL:
+            members = known
+        else:
+            members = self.api.list_members(device_id)
+            self._members_at[device_id] = time.time()
         return {DATA_CODES: codes, DATA_UNLOCKS: unlocks, DATA_MEMBERS: members}
 
     def _fetch_all(self) -> dict[str, dict[str, Any]]:

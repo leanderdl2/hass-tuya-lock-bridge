@@ -68,10 +68,23 @@ Open Service**. The integration asks for the project's Access ID, Access Secret
 and data centre, then lists your devices and pre-selects the locks.
 
 Mind the project's subscription. The Trial Edition comes with a monthly
-allowance and has to be extended periodically; when it lapses every API call
-stops, and so does this integration. Each refresh costs a handful of calls per
-lock; the interval is five minutes by default and can be changed under the
-integration's options.
+allowance - **26,000 API calls**, after which Tuya suspends the service until
+the next month - and has to be extended periodically; when it lapses every API
+call stops, and so does this integration.
+
+Budget, measured on two locks with three members each:
+
+| | calls |
+|---|---|
+| A refresh | 2 per lock (codes and the unlock log) |
+| The members, on their own six-hour clock | about 7 per lock |
+| A change you make (code, profile, card) | a handful, plus a full refresh |
+
+So two locks at a five-minute interval cost roughly 1,200 calls a day, or
+36,000 a month: over the Trial allowance. **Ten to fifteen minutes keeps two
+locks inside it** (about 19,000 and 13,000 a month). Real-time messages make a
+longer interval cheap: an unlock still reaches Home Assistant within seconds.
+The `sensor.<account>_api_calls` entity shows where you stand.
 
 ## Real-time messages
 
