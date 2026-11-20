@@ -6,12 +6,12 @@ from __future__ import annotations
 import time
 from datetime import datetime
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
-from homeassistant.const import EntityCategory
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.const import PERCENTAGE, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DATA_CODES, DATA_UNLOCKS
+from .const import DATA_CODES, DATA_STATUS, DATA_UNLOCKS
 from .coordinator import TuyaLockCoordinator, code_confirmed, code_status
 from .entity import TuyaLockEntity
 
@@ -22,6 +22,9 @@ async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities: AddE
     for device in coordinator.devices.values():
         entities.append(ValidCodesSensor(coordinator, device))
         entities.append(LastUnlockSensor(coordinator, device))
+        # Only locks that report a battery level get a battery sensor.
+        if "residual_electricity" in (coordinator.data or {}).get(device.device_id, {}).get(DATA_STATUS, {}):
+            entities.append(BatterySensor(coordinator, device))
     # One per account, attached to the first lock's device so it has a home.
     if coordinator.devices:
         entities.append(ApiCallsSensor(coordinator, next(iter(coordinator.devices.values()))))
@@ -102,6 +105,24 @@ class LastUnlockSensor(TuyaLockEntity, SensorEntity):
             "time": latest["time"],
             "recent": [{k: u[k] for k in ("who", "method", "key", "time")} for u in unlocks],
         }
+
+
+class BatterySensor(TuyaLockEntity, SensorEntity):
+    """Battery level, from the lock's own `residual_electricity` status."""
+
+    _attr_device_class = SensorDeviceClass.BATTERY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, device) -> None:
+        super().__init__(coordinator, device)
+        self._attr_unique_id = f"{device.device_id}_battery"
+
+    @property
+    def native_value(self) -> int | None:
+        value = self.lock_data.get(DATA_STATUS, {}).get("residual_electricity")
+        return int(value) if isinstance(value, (int, float)) else None
 
 
 class ApiCallsSensor(TuyaLockEntity, SensorEntity):

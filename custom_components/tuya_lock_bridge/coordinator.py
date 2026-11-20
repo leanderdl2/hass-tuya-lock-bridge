@@ -2,7 +2,7 @@
 
 One coordinator per config entry. Each refresh fetches, per lock, the temporary
 codes, the recent unlock log and the members with their permanent methods. That
-is roughly 3 + N calls per lock (N = members) against the Tuya project's
+is roughly 4 + N calls per lock (N = members, plus one for the lock's own status) against the Tuya project's
 monthly allowance, so the interval is configurable and defaults to five
 minutes.
 
@@ -51,6 +51,7 @@ from .const import (
     CONF_SUBSCRIPTION_END,
     DATA_CODES,
     DATA_MEMBERS,
+    DATA_STATUS,
     DATA_UNLOCKS,
     DEFAULT_REFRESH_MINUTES,
     DOMAIN,
@@ -214,7 +215,16 @@ class TuyaLockCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         else:
             members = self.api.list_members(device_id)
             self._members_at[device_id] = time.time()
-        return {DATA_CODES: codes, DATA_UNLOCKS: unlocks, DATA_MEMBERS: members}
+        # The lock's own status (battery and so on). Optional: a failure here
+        # must not blank the codes and the unlock log, so keep the last value.
+        try:
+            status = self.api.device_status(device_id)
+        except (TuyaSubscriptionError, TuyaNotAuthorisedError):
+            raise
+        except TuyaLockError as err:
+            _LOGGER.debug("No status for %s: %s", device_id, err)
+            status = (self.data or {}).get(device_id, {}).get(DATA_STATUS, {})
+        return {DATA_CODES: codes, DATA_UNLOCKS: unlocks, DATA_MEMBERS: members, DATA_STATUS: status}
 
     def _fetch_all(self) -> dict[str, dict[str, Any]]:
         out: dict[str, dict[str, Any]] = {}
