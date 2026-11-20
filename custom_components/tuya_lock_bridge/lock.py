@@ -4,20 +4,19 @@ and Google/Alexa exposure work.
 A Tuya keypad reports no lock state to the cloud, so the entity is an
 "assumed state" one: it shows Unknown at rest, Opening while the command is
 under way, Open for a few seconds afterwards, then Unknown again. Locking is
-not a thing it can do - the strike relocks on its own - so the lock service
-answers with an error rather than pretending.
+not something it can tell either. A lock command is sent as the lock's
+`manual_lock` instruction; locks without it answer with an error.
 """
 
 from __future__ import annotations
 
 from homeassistant.components.lock import LockEntity, LockEntityFeature
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 
 from .api import TuyaLockError
-from .const import DOMAIN
 from .entity import TuyaLockEntity
 
 OPEN_SECONDS = 5
@@ -46,9 +45,22 @@ class DoorLock(TuyaLockEntity, LockEntity):
         await self._open()
 
     async def async_lock(self, **kwargs) -> None:
-        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="cannot_lock")
+        """Send the lock's `manual_lock` instruction. Locks that do not have
+        it answer with an error, which is shown to the user."""
+        try:
+            await self.hass.async_add_executor_job(self.coordinator.api.lock, self.device.device_id)
+        except TuyaLockError as err:
+            raise HomeAssistantError(str(err)) from err
+        if self._cancel_reset is not None:
+            self._cancel_reset()
+            self._cancel_reset = None
+        self._attr_is_open = False
+        self._attr_is_locked = True
+        self.async_write_ha_state()
+        await self.coordinator.async_record(self._context, "lock", self.device.device_id)
 
     async def _open(self) -> None:
+        self._attr_is_locked = None
         self._attr_is_opening = True
         self.async_write_ha_state()
         try:

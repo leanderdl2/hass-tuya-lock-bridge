@@ -12,6 +12,7 @@ from .const import BUS_EVENT_ACTION, DOMAIN
 MESSAGES = {
     "en": {
         "unlock": "{user} opened the door",
+        "lock": "{user} locked the door",
         "create_code": "{user} created code {name}",
         "revoke_code": "{user} revoked code {name}",
         "purge_code": "{user} removed code {name} from the list",
@@ -25,6 +26,7 @@ MESSAGES = {
     },
     "nl": {
         "unlock": "{user} heeft de deur geopend",
+        "lock": "{user} heeft de deur vergrendeld",
         "create_code": "{user} heeft code {name} aangemaakt",
         "revoke_code": "{user} heeft code {name} ingetrokken",
         "purge_code": "{user} heeft code {name} uit de lijst verwijderd",

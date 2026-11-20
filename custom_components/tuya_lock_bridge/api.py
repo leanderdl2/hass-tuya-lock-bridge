@@ -310,6 +310,15 @@ class TuyaLockApi:
             for d in (result or {}).get("devices", [])
         ]
 
+    def device_status(self, device_id: str) -> dict[str, Any]:
+        """The lock's own status points, e.g. {"residual_electricity": 87}.
+
+        One call. Which codes exist differs per model; a lock that reports
+        none gives an empty dict.
+        """
+        result = self._get(f"/v1.0/devices/{device_id}/status", what="read the lock status") or []
+        return {item["code"]: item.get("value") for item in result if isinstance(item, dict) and "code" in item}
+
     # ---------------------------------------------------------------- unlock
 
     # The three ways Tuya documents for opening a door without a password,
@@ -357,6 +366,14 @@ class TuyaLockApi:
                 msg += (" - the lock refuses remote unlocking. Enable 'Remote unlock' in the Tuya app for this lock;"
                         " battery locks also have to be awake (press a key on the keypad first)")
             raise TuyaLockError(msg, last.code)
+
+    def lock(self, device_id: str) -> None:
+        """Ask the lock to lock now (the standard `manual_lock` instruction).
+
+        Not every lock has it; the ones that do relock their bolt when it is
+        sent. Tuya answers "sent" as soon as the cloud accepts the command.
+        """
+        self._post(f"/v1.0/devices/{device_id}/commands", {"commands": [{"code": "manual_lock", "value": True}]}, "lock the door")
 
     # ------------------------------------------------------- temporary codes
 

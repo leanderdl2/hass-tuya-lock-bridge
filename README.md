@@ -17,8 +17,9 @@ Per lock, one device with:
 
 | Entity | Does |
 |---|---|
-| `lock.<lock>_door` | A real lock entity for the lock card, voice assistants and Google/Alexa: open/unlock opens the door. The keypad reports no state, so it shows *unknown* at rest and *open* for a few seconds after opening |
+| `lock.<lock>_door` | A real lock entity for the lock card, voice assistants and Google/Alexa: open/unlock opens the door; lock sends the lock's `manual_lock` instruction, for locks that have it. The lock reports no state, so it shows *unknown* at rest and *open* for a few seconds after opening |
 | `button.<lock>_open` | Opens the door |
+| `sensor.<lock>_battery` | Battery level, for locks that report one (`residual_electricity`) |
 | `sensor.<lock>_valid_codes` | Temporary codes valid right now; the full list in its attributes |
 | `sensor.<lock>_last_unlock` | Who opened the door last, how, and when; the twenty before it in `recent` |
 | `event.<lock>_unlock` | Fires once per unlock — trigger an automation on who came in |
@@ -76,7 +77,7 @@ Budget, measured on two locks with three members each:
 
 | | calls |
 |---|---|
-| A refresh | 2 per lock (codes and the unlock log) |
+| A refresh | 3 per lock (codes, the unlock log and the lock's own status) |
 | The members, on their own six-hour clock | about 7 per lock |
 | A change you make (code, profile, card) | a handful, plus a full refresh |
 

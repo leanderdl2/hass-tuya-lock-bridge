@@ -44,6 +44,7 @@ PLATFORMS = ["button", "event", "lock", "sensor", "switch"]
 DATA_CODES = "codes"
 DATA_UNLOCKS = "unlocks"
 DATA_MEMBERS = "members"
+DATA_STATUS = "status"
 
 EVENT_TYPE_UNLOCK = "unlock"
 EVENT_TYPE_RING = "ring"
